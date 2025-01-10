@@ -43,40 +43,34 @@ namespace videomasking.Services
 
         private Mat ApplyMasking(Mat frame)
         {
-            // Konvertovanje frame-a u bajtove
-            byte[] imageBytes = frame.ToBytes(".jpg");
+            // Spremaj frame u privremenu sliku
+            var tempImagePath = Path.Combine(Path.GetTempPath(), "frame.jpg");
+            frame.SaveImage(tempImagePath);
 
-            // Pozivanje Python skripte za detekciju
-            var pythonPath = "python";
-            var scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "mediapipe_detect.py");
+            // Pozivanje Python skripte za YOLO detekciju
+            var pythonPath = "python"; // Putanja do Python-a
+            var scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "yolo_detect.py");
 
             var processInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = pythonPath,
-                Arguments = scriptPath,
-                RedirectStandardInput = true,
+                Arguments = $"{scriptPath} {tempImagePath}", // Slanje generisanog framea Python skripti
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
             using var process = System.Diagnostics.Process.Start(processInfo);
+            using var reader = process.StandardOutput;
 
-            // Slanje slike kroz standardni ulaz Python skripti
-            using (var writer = process.StandardInput.BaseStream)
-            {
-                writer.Write(imageBytes, 0, imageBytes.Length);
-                writer.Flush();
-            }
-
-            // Čitanje izlaza iz Python skripte
-            string output = process.StandardOutput.ReadToEnd();
+            // Parse output (bounding box koordinate)
+            var output = reader.ReadToEnd();
             process.WaitForExit();
 
             // Obrada rezultata
             var detections = ParseDetections(output);
 
-            // Primena zamagljivanja na detektovane regije
+            // Primjena zamagljivanja na detektovane regije
             foreach (var (x1, y1, x2, y2) in detections)
             {
                 var roi = new Rect(x1, y1, x2 - x1, y2 - y1);
@@ -86,7 +80,6 @@ namespace videomasking.Services
 
             return frame;
         }
-
 
 
         private List<(int, int, int, int)> ParseDetections(string output)
@@ -99,7 +92,6 @@ namespace videomasking.Services
                 output = output.Trim(new char[] { '[', ']', ' ' });
                 if (string.IsNullOrEmpty(output) || output == "[]")
                     return detections;
-                Console.WriteLine($"Python output: {output}");
 
                 var boxes = output.Split("),");
                 foreach (var box in boxes)
@@ -146,4 +138,4 @@ namespace videomasking.Services
             }
         }
     }
-}
+} 

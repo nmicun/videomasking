@@ -1,5 +1,4 @@
-﻿import os
-import sys
+﻿import sys
 import cv2
 from ultralytics import YOLO
 import warnings
@@ -9,7 +8,9 @@ os.environ['ULTRALYTICS_NO_SETTINGS'] = '1'  # Onemogućuje kreiranje settings f
 warnings.filterwarnings('ignore')  # Ignorirajte upozorenja
 
 # Učitajte YOLO model (provjerite da li je model preuzet i smješten u odgovarajući folder)
-model = YOLO("Models/yolov5s.pt", verbose=False)
+ model = YOLO("Models/yolov5s.pt", verbose=False)
+#model = torch.hub.load('ultralytics/yolov5', 'yolov5s', device='cuda')
+
 
 def detect_objects(image_path):
     """
