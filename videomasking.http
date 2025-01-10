@@ -1,0 +1,6 @@
+@videomasking_HostAddress = http://localhost:5183
+
+GET {{videomasking_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
